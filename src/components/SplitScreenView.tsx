@@ -31,24 +31,42 @@ function formatScramble(
 	eventId: string,
 	singleLine: boolean,
 ): string {
-	const moves = scramble.split(/\s+/).filter((m) => m.length > 0);
+	const tokens = scramble.split(/\s+/).filter((m) => m.length > 0);
+	if (tokens.length === 0) return scramble;
+
+	const isSquare1 = eventId === "sq1";
+	const moves = isSquare1 ? tokens.filter((t) => t !== "/") : tokens;
 	if (moves.length === 0) return scramble;
 
 	const maxMoveLength = Math.max(...moves.map((m) => m.length));
 	const moveWidth = maxMoveLength + 1;
 
-	const paddedMoves = moves.map((move) => move.padEnd(moveWidth));
+	const formattedTokens = tokens.map((token) =>
+		token === "/" ? "/ " : token.padEnd(moveWidth),
+	);
 
 	if (singleLine) {
-		return paddedMoves.join("").trimEnd();
+		return formattedTokens.join("").trimEnd();
 	}
 
 	const maxLineLength = getMaxLineLength(eventId);
 	const lines: string[] = [];
+	let currentLine: string[] = [];
+	let moveCount = 0;
 
-	for (let i = 0; i < paddedMoves.length; i += maxLineLength) {
-		const lineMoves = paddedMoves.slice(i, i + maxLineLength);
-		lines.push(lineMoves.join("").trimEnd());
+	for (const token of formattedTokens) {
+		if (!isSquare1 || token.trim() !== "/") {
+			if (moveCount > 0 && moveCount % maxLineLength === 0) {
+				lines.push(currentLine.join("").trimEnd());
+				currentLine = [];
+			}
+			moveCount++;
+		}
+		currentLine.push(token);
+	}
+
+	if (currentLine.length > 0) {
+		lines.push(currentLine.join("").trimEnd());
 	}
 
 	return lines.join("\n");
